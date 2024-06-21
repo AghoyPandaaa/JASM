@@ -6,7 +6,7 @@ import java.lang.Exception;
 class Assembler {
     CPU cpu;
     Map<String, Integer> labels;
-    Map<String, Integer> variables;
+    Map<String, Variable> variables = new HashMap<>();
     String[] codeLines;
     int currentSegment;
 
@@ -160,12 +160,49 @@ class Assembler {
         }
     }
 
-    private void handleVariableDefinition(String[] parts) {
-        String varName = parts[0];
-        int value = Integer.parseInt(parts[2]);
-        variables.put(varName.toUpperCase(), value);
-    }
+    private void handleVariableDefinition(String[] parts) throws Exception {
+        String varName = parts[0].toUpperCase();
+        String dataType = parts[1].toUpperCase();
+        long size;
+        long parsedValue = Long.parseLong(parts[2]);
 
+        switch (dataType) {
+            case "BYTE": // Define Byte
+                size = 1;
+                parsedValue = (long)(Integer.parseInt(String.valueOf(parsedValue)) & 0xFF);
+                break;
+            case "SBYTE": // Define Signed Byte
+                size = 1;
+                parsedValue = (long)(byte)Integer.parseInt(String.valueOf(parsedValue));
+                break;
+            case "WORD": // Define Word
+                size = 2;
+                parsedValue = (long)(Integer.parseInt(String.valueOf(parsedValue)) & 0xFFFF);
+                break;
+            case "SWORD": // Define Signed Word
+                size = 2;
+                parsedValue = (long)(short)Integer.parseInt(String.valueOf(parsedValue));
+                break;
+            case "DWORD": // Define Doubleword
+                size = 4;
+                parsedValue = (long)Integer.parseInt(String.valueOf(parsedValue));
+                break;
+            case "SDWORD": // Define Signed Doubleword
+                size = 4;
+                parsedValue = (long)Integer.parseInt(String.valueOf(parsedValue));
+                break;
+            case "QWORD": // Define Quadword
+                size = 8;
+                parsedValue = Long.parseLong(String.valueOf(parsedValue));
+                break;
+            default:
+                throw new Exception("Unsupported data type: " + dataType);
+        }
+
+        long address = 0; // You need to implement logic to calculate the address
+        Variable variable = new Variable(address, size, parsedValue);
+        variables.put(varName, variable);
+    }
     private void handleAdd(String[] parts) throws Exception {
     if (parts.length != 3) {
         throw new Exception("Syntax error: Invalid number of operands for ADD operation");
@@ -485,7 +522,7 @@ private void handleDec(String[] parts) throws Exception {
         if (isRegister(operand)) {
             return cpu.getRegister(operand);
         } else if (isVariable(operand)) {
-            return variables.get(operand);
+            return (int)variables.get(operand).value;
         } else {
             return Integer.parseInt(operand);
         }
@@ -506,7 +543,7 @@ private void handleDec(String[] parts) throws Exception {
     private void handleOffset(String[] parts) {
         String var = parts[1].toUpperCase();
         if (isVariable(var)) {
-            int offset = variables.get(var);
+            int offset = (int)variables.get(var).value;
             System.out.println("OFFSET " + var + ": " + offset);
         } else {
             System.out.println("Variable not found: " + var);
@@ -583,12 +620,14 @@ private void handleDec(String[] parts) throws Exception {
 
 
     private void setValue(String operand, int value) {
-        if (isRegister(operand)) {
-            cpu.setRegister(operand, value);
-        } else if (isVariable(operand)) {
-            variables.put(operand, value);
-        }
+    if (isRegister(operand)) {
+        cpu.setRegister(operand, value);
+    } else if (isVariable(operand)) {
+        Variable variable = variables.get(operand);
+        variable.value = value;
+        variables.put(operand, variable);
     }
+}
 }
 
 
