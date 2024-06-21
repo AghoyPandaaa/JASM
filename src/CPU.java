@@ -160,10 +160,18 @@ class CPU {
 
     public void push(int value) {
         stack.push(value);
+        // Update ESP
+        setRegister("ESP", getRegister("ESP") - 4);
     }
 
     public int pop() {
-        return stack.isEmpty() ? 0 : stack.pop();
+        if (!stack.isEmpty()) {
+            // Update ESP
+            setRegister("ESP", getRegister("ESP") + 4);
+            return stack.pop();
+        } else {
+            throw new IllegalStateException("Stack underflow");
+        }
     }
 
     public boolean isRegister(String name) {

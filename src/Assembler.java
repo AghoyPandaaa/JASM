@@ -400,15 +400,15 @@ private void handleDec(String[] parts) throws Exception {
     }
 
     private void handlePush(String[] parts) {
-        String reg = parts[1].toUpperCase();
-        int value = cpu.getRegister(reg);
+        String operand = parts[1].toUpperCase();
+        int value = getValue(operand);
         cpu.push(value);
     }
 
     private void handlePop(String[] parts) {
-        String reg = parts[1].toUpperCase();
+        String operand = parts[1].toUpperCase();
         int value = cpu.pop();
-        cpu.setRegister(reg, value);
+        setValue(operand, value);
     }
 
     private void handleJmp(String[] parts) {
