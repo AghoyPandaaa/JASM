@@ -164,44 +164,44 @@ class Assembler {
         String varName = parts[0].toUpperCase();
         String dataType = parts[1].toUpperCase();
         long size;
-        long parsedValue = Long.parseLong(parts[2]);
+        long parsedValue;
+        long length = 1; // Default length for a single variable
 
         switch (dataType) {
             case "BYTE": // Define Byte
-                size = 1;
-                parsedValue = (long)(Integer.parseInt(String.valueOf(parsedValue)) & 0xFF);
-                break;
             case "SBYTE": // Define Signed Byte
                 size = 1;
-                parsedValue = (long)(byte)Integer.parseInt(String.valueOf(parsedValue));
                 break;
             case "WORD": // Define Word
-                size = 2;
-                parsedValue = (long)(Integer.parseInt(String.valueOf(parsedValue)) & 0xFFFF);
-                break;
             case "SWORD": // Define Signed Word
                 size = 2;
-                parsedValue = (long)(short)Integer.parseInt(String.valueOf(parsedValue));
                 break;
             case "DWORD": // Define Doubleword
-                size = 4;
-                parsedValue = (long)Integer.parseInt(String.valueOf(parsedValue));
-                break;
             case "SDWORD": // Define Signed Doubleword
                 size = 4;
-                parsedValue = (long)Integer.parseInt(String.valueOf(parsedValue));
                 break;
             case "QWORD": // Define Quadword
                 size = 8;
-                parsedValue = Long.parseLong(String.valueOf(parsedValue));
                 break;
             default:
                 throw new Exception("Unsupported data type: " + dataType);
         }
 
-        long address = 0; // You need to implement logic to calculate the address
-        Variable variable = new Variable(address, size, parsedValue);
-        variables.put(varName, variable);
+        if (parts[2].startsWith("[")) {
+            // This is an array definition
+            length = Integer.parseInt(parts[2].substring(1, parts[2].length() - 1));
+            for (int i = 0; i < length; i++) {
+                long address = 0; // You need to implement logic to calculate the address
+                Variable variable = new Variable(address, size, length, 0);
+                variables.put(varName + "[" + i + "]", variable);
+            }
+        } else {
+            // This is a single variable definition
+            parsedValue = Long.parseLong(parts[2]);
+            long address = 0; // You need to implement logic to calculate the address
+            Variable variable = new Variable(address, size, length, parsedValue);
+            variables.put(varName, variable);
+        }
     }
     private void handleAdd(String[] parts) throws Exception {
     if (parts.length != 3) {
