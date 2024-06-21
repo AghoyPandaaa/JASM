@@ -166,25 +166,51 @@ class Assembler {
         variables.put(varName.toUpperCase(), value);
     }
 
-    private void handleAdd(String[] parts) {
-        String dest = parts[1].toUpperCase();
-        String src = parts[2].toUpperCase();
-        int srcValue = getValue(src);
-        int destValue = cpu.getRegister(dest);
-        int result = destValue + srcValue;
-        cpu.setRegister(dest, result);
-        cpu.updateFlags(result, srcValue, destValue, true);
+    private void handleAdd(String[] parts) throws Exception {
+    if (parts.length != 3) {
+        throw new Exception("Syntax error: Invalid number of operands for ADD operation");
     }
+    String dest = parts[1].toUpperCase();
+    String src = parts[2].toUpperCase();
+    if (!isRegister(dest) && !isVariable(dest)) {
+        throw new Exception("Syntax error: Invalid destination operand for ADD operation");
+    }
+    if (!isRegister(src) && !isVariable(src) && !isNumeric(src)) {
+        throw new Exception("Syntax error: Invalid source operand for ADD operation");
+    }
+    if (isRegister(dest) && isRegister(src) && getRegisterSize(dest) != getRegisterSize(src)) {
+        throw new Exception("Syntax error: Size mismatch between source and destination registers for ADD operation");
+    }
+    // Implement the ADD operation
+    int srcValue = getValue(src);
+    int destValue = getValue(dest);
+    int result = destValue + srcValue;
+    cpu.setRegister(dest, result);
+    cpu.updateFlags(result, srcValue, destValue, true);
+}
 
-    private void handleSub(String[] parts) {
-        String dest = parts[1].toUpperCase();
-        String src = parts[2].toUpperCase();
-        int srcValue = getValue(src);
-        int destValue = cpu.getRegister(dest);
-        int result = destValue - srcValue;
-        cpu.setRegister(dest, result);
-        cpu.updateFlags(result, srcValue, destValue, false);
+    private void handleSub(String[] parts) throws Exception {
+    if (parts.length != 3) {
+        throw new Exception("Syntax error: Invalid number of operands for SUB operation");
     }
+    String dest = parts[1].toUpperCase();
+    String src = parts[2].toUpperCase();
+    if (!isRegister(dest) && !isVariable(dest)) {
+        throw new Exception("Syntax error: Invalid destination operand for SUB operation");
+    }
+    if (!isRegister(src) && !isVariable(src) && !isNumeric(src)) {
+        throw new Exception("Syntax error: Invalid source operand for SUB operation");
+    }
+    if (isRegister(dest) && isRegister(src) && getRegisterSize(dest) != getRegisterSize(src)) {
+        throw new Exception("Syntax error: Size mismatch between source and destination registers for SUB operation");
+    }
+    // Implement the SUB operation
+    int srcValue = getValue(src);
+    int destValue = getValue(dest);
+    int result = destValue - srcValue;
+    cpu.setRegister(dest, result);
+    cpu.updateFlags(result, srcValue, destValue, false);
+}
 
     private void handleMov(String[] parts) {
         String dest = parts[1].toUpperCase();
@@ -259,29 +285,52 @@ private void handleMovzx(String[] parts) throws Exception {
     setValue(src, destValue);
 }
 
-    private void handleNeg(String[] parts) {
-        String reg = parts[1].toUpperCase();
-        int value = cpu.getRegister(reg);
-        int result = -value;
-        cpu.setRegister(reg, result);
-        cpu.updateFlags(result, 0, value, false);
+    private void handleNeg(String[] parts) throws Exception {
+    if (parts.length != 2) {
+        throw new Exception("Syntax error: Invalid number of operands for NEG operation");
     }
+    String operand = parts[1].toUpperCase();
+    if (!isRegister(operand) && !isVariable(operand)) {
+        throw new Exception("Syntax error: Invalid operand for NEG operation");
+    }
+    // Implement the NEG operation
+    int operandValue = getValue(operand);
+    int result = -operandValue;
+    setValue(operand, result);
+    cpu.updateFlags(result, 0, operandValue, false);
+}
 
-    private void handleInc(String[] parts) {
-        String reg = parts[1].toUpperCase();
-        int value = cpu.getRegister(reg);
-        int result = value + 1;
-        cpu.setRegister(reg, result);
-        cpu.updateFlags(result, 1, value, true);
+    private void handleInc(String[] parts) throws Exception {
+    if (parts.length != 2) {
+        throw new Exception("Syntax error: Invalid number of operands for INC operation");
     }
+    String operand = parts[1].toUpperCase();
+    if (!isRegister(operand) && !isVariable(operand)) {
+        throw new Exception("Syntax error: Invalid operand for INC operation");
+    }
+    // Implement the INC operation
+    int operandValue = getValue(operand);
+    int result = operandValue + 1;
+    setValue(operand, result);
+    cpu.updateFlags(result, 1, operandValue, true);
+    cpu.setFlag("CF", cpu.getFlag("CF")); // Preserve the original Carry flag
+}
 
-    private void handleDec(String[] parts) {
-        String reg = parts[1].toUpperCase();
-        int value = cpu.getRegister(reg);
-        int result = value - 1;
-        cpu.setRegister(reg, result);
-        cpu.updateFlags(result, 1, value, false);
+private void handleDec(String[] parts) throws Exception {
+    if (parts.length != 2) {
+        throw new Exception("Syntax error: Invalid number of operands for DEC operation");
     }
+    String operand = parts[1].toUpperCase();
+    if (!isRegister(operand) && !isVariable(operand)) {
+        throw new Exception("Syntax error: Invalid operand for DEC operation");
+    }
+    // Implement the DEC operation
+    int operandValue = getValue(operand);
+    int result = operandValue - 1;
+    setValue(operand, result);
+    cpu.updateFlags(result, 1, operandValue, false);
+    cpu.setFlag("CF", cpu.getFlag("CF")); // Preserve the original Carry flag
+}
 
     private void handleOr(String[] parts) {
         String dest = parts[1].toUpperCase();
