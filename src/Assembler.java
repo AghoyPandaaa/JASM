@@ -1,6 +1,7 @@
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Stack;
+import java.lang.Exception;
 
 class Assembler {
     CPU cpu;
@@ -16,7 +17,7 @@ class Assembler {
         currentSegment = 0; // 0 = .code, 1 = .data, 2 = .stack
     }
 
-    public void execute(String instruction, int currentLine) {
+    public void execute(String instruction, int currentLine) throws Exception {
         String[] parts = instruction.trim().split("\\s+|,\\s*");
         String opcode = parts[0].toUpperCase();
 
@@ -28,7 +29,23 @@ class Assembler {
                 handleSub(parts);
                 break;
             case "MOV":
-                handleMov(parts);
+                if (parts.length != 3) {
+                    throw new Exception("Syntax error: Invalid number of operands for MOV operation");
+                }
+                String dest = parts[1].toUpperCase();
+                String src = parts[2].toUpperCase();
+                if (!isRegister(dest) && !isVariable(dest)) {
+                    throw new Exception("Syntax error: Invalid destination operand for MOV operation");
+                }
+                if (!isRegister(src) && !isVariable(src) && !isNumeric(src)) {
+                    throw new Exception("Syntax error: Invalid source operand for MOV operation");
+                }
+                if (isRegister(dest) && isRegister(src) && getRegisterSize(dest) != getRegisterSize(src)) {
+                    throw new Exception("Syntax error: Size mismatch between source and destination registers for MOV operation");
+                }
+                // Implement the MOV operation
+                int srcValue = getValue(src);
+                cpu.setRegister(dest, srcValue);
                 break;
             case "MOVSX":
                 handleMovsx(parts);
@@ -176,30 +193,71 @@ class Assembler {
         cpu.setRegister(dest, srcValue);
     }
 
-    private void handleMovsx(String[] parts) {
-        String dest = parts[1].toUpperCase();
-        String src = parts[2].toUpperCase();
-        int srcValue = cpu.getRegister(src);
-        int result = (srcValue << 24) >> 24; // Sign extend from 8 bits
-        cpu.setRegister(dest, result);
+    private void handleMovsx(String[] parts) throws Exception {
+    if (parts.length != 3) {
+        throw new Exception("Syntax error: Invalid number of operands for MOVSX operation");
     }
+    String dest = parts[1].toUpperCase();
+    String src = parts[2].toUpperCase();
+    if (!isRegister(dest) || (!isRegister(src) && !isVariable(src))) {
+        throw new Exception("Syntax error: Invalid operand for MOVSX operation");
+    }
+    int srcValue = getValue(src);
+    if (getRegisterSize(dest) == 32 && getRegisterSize(src) == 16) {
+        srcValue = (srcValue << 16) >> 16; // Sign extend from 16 bits
+    } else if (getRegisterSize(dest) == 32 && getRegisterSize(src) == 8) {
+        srcValue = (srcValue << 24) >> 24; // Sign extend from 8 bits
+    } else if (getRegisterSize(dest) == 16 && getRegisterSize(src) == 8) {
+        srcValue = (srcValue << 8) >> 8; // Sign extend from 8 bits
+    } else {
+        throw new Exception("Syntax error: Size mismatch between source and destination registers for MOVSX operation");
+    }
+    cpu.setRegister(dest, srcValue);
+}
 
-    private void handleMovzx(String[] parts) {
-        String dest = parts[1].toUpperCase();
-        String src = parts[2].toUpperCase();
-        int srcValue = cpu.getRegister(src);
-        int result = srcValue & 0xFF; // Zero extend from 8 bits
-        cpu.setRegister(dest, result);
+private void handleMovzx(String[] parts) throws Exception {
+    if (parts.length != 3) {
+        throw new Exception("Syntax error: Invalid number of operands for MOVZX operation");
     }
+    String dest = parts[1].toUpperCase();
+    String src = parts[2].toUpperCase();
+    if (!isRegister(dest) || (!isRegister(src) && !isVariable(src))) {
+        throw new Exception("Syntax error: Invalid operand for MOVZX operation");
+    }
+    int srcValue = getValue(src);
+    if (getRegisterSize(dest) == 32 && getRegisterSize(src) == 16) {
+        srcValue = srcValue & 0xFFFF; // Zero extend from 16 bits
+    } else if (getRegisterSize(dest) == 32 && getRegisterSize(src) == 8) {
+        srcValue = srcValue & 0xFF; // Zero extend from 8 bits
+    } else if (getRegisterSize(dest) == 16 && getRegisterSize(src) == 8) {
+        srcValue = srcValue & 0xFF; // Zero extend from 8 bits
+    } else {
+        throw new Exception("Syntax error: Size mismatch between source and destination registers for MOVZX operation");
+    }
+    cpu.setRegister(dest, srcValue);
+}
 
-    private void handleXchg(String[] parts) {
-        String reg1 = parts[1].toUpperCase();
-        String reg2 = parts[2].toUpperCase();
-        int value1 = cpu.getRegister(reg1);
-        int value2 = cpu.getRegister(reg2);
-        cpu.setRegister(reg1, value2);
-        cpu.setRegister(reg2, value1);
+    private void handleXchg(String[] parts) throws Exception {
+    if (parts.length != 3) {
+        throw new Exception("Syntax error: Invalid number of operands for XCHG operation");
     }
+    String dest = parts[1].toUpperCase();
+    String src = parts[2].toUpperCase();
+    if (!isRegister(dest) && !isVariable(dest)) {
+        throw new Exception("Syntax error: Invalid destination operand for XCHG operation");
+    }
+    if (!isRegister(src) && !isVariable(src) && !isNumeric(src)) {
+        throw new Exception("Syntax error: Invalid source operand for XCHG operation");
+    }
+    if (isRegister(dest) && isRegister(src) && getRegisterSize(dest) != getRegisterSize(src)) {
+        throw new Exception("Syntax error: Size mismatch between source and destination registers for XCHG operation");
+    }
+    // Implement the XCHG operation
+    int destValue = getValue(dest);
+    int srcValue = getValue(src);
+    setValue(dest, srcValue);
+    setValue(src, destValue);
+}
 
     private void handleNeg(String[] parts) {
         String reg = parts[1].toUpperCase();
@@ -334,7 +392,12 @@ class Assembler {
                 labels.put(line.substring(0, line.length() - 1), i);
                 continue;
             }
-            execute(line, i);
+            try {
+                execute(line, i);
+            } catch (Exception e) {
+                System.out.println("Error executing line " + i + ": " + e.getMessage());
+                break;
+            }
         }
     }
 
@@ -351,7 +414,12 @@ class Assembler {
         for (int i = 0; i < codeLines.length; i++) {
             String line = codeLines[i].trim();
             if (!line.endsWith(":")) {
-                execute(line, i);
+                try {
+                    execute(line, i);
+                } catch (Exception e) {
+                    System.out.println("Error executing line " + i + ": " + e.getMessage());
+                    break;
+                }
             }
         }
     }
@@ -442,4 +510,36 @@ class Assembler {
             executeLabel(label);
         }
     }
+
+
+    private boolean isNumeric(String str) {
+        try {
+            Integer.parseInt(str);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+
+
+    private int getRegisterSize(String reg) {
+    if (reg.equals("AX") || reg.equals("BX") || reg.equals("CX") || reg.equals("DX")) {
+        return 16;
+    } else if (reg.equals("AL") || reg.equals("BL") || reg.equals("CL") || reg.equals("DL")) {
+        return 8;
+    } else {
+        return 32;
+    }
 }
+
+
+    private void setValue(String operand, int value) {
+        if (isRegister(operand)) {
+            cpu.setRegister(operand, value);
+        } else if (isVariable(operand)) {
+            variables.put(operand, value);
+        }
+    }
+}
+
+
