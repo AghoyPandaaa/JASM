@@ -141,6 +141,9 @@ class Assembler {
             case "SIZEOF":
                 handleSizeof(parts);
                 break;
+            case "PTR":
+                handlePtr(parts);
+                break;
             case "TEST":
                 handleTest(parts);
                 break;
@@ -560,20 +563,10 @@ private void handleDec(String[] parts) throws Exception {
         cpu.setFlag("CF", false);
     }
 
-    private void handleOffset(String[] parts) {
-        String var = parts[1].toUpperCase();
-        if (isVariable(var)) {
-            int offset = (int)variables.get(var).value;
-            System.out.println("OFFSET " + var + ": " + offset);
-        } else {
-            System.out.println("Variable not found: " + var);
-        }
-    }
-
     private void handleLengthof(String[] parts) {
         String var = parts[1].toUpperCase();
         if (isVariable(var)) {
-            int length = 1; // Assuming each variable is of length 1 for simplicity
+            long length = variables.get(var).length;
             System.out.println("LENGTHOF " + var + ": " + length);
         } else {
             System.out.println("Variable not found: " + var);
@@ -583,13 +576,32 @@ private void handleDec(String[] parts) throws Exception {
     private void handleSizeof(String[] parts) {
         String var = parts[1].toUpperCase();
         if (isVariable(var)) {
-            int size = 4; // Assuming each variable is of size 4 bytes for simplicity
+            long size = variables.get(var).size;
             System.out.println("SIZEOF " + var + ": " + size);
         } else {
             System.out.println("Variable not found: " + var);
         }
     }
 
+    private void handlePtr(String[] parts) {
+        String var = parts[1].toUpperCase();
+        if (isVariable(var)) {
+            long address = variables.get(var).address;
+            System.out.println("PTR " + var + ": " + address);
+        } else {
+            System.out.println("Variable not found: " + var);
+        }
+    }
+
+    private void handleOffset(String[] parts) {
+        String var = parts[1].toUpperCase();
+        if (isVariable(var)) {
+            long address = variables.get(var).address;
+            System.out.println("OFFSET " + var + ": " + address);
+        } else {
+            System.out.println("Variable not found: " + var);
+        }
+    }
     private void handleTest(String[] parts) {
         String op1 = parts[1].toUpperCase();
         String op2 = parts[2].toUpperCase();
