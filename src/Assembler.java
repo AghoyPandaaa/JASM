@@ -34,18 +34,29 @@ class Assembler {
                 }
                 String dest = parts[1].toUpperCase();
                 String src = parts[2].toUpperCase();
-                if (!isRegister(dest) && !isVariable(dest)) {
+                if (!isRegister(dest) && !isVariable(dest) && !isIndirect(dest)) {
                     throw new Exception("Syntax error: Invalid destination operand for MOV operation");
                 }
-                if (!isRegister(src) && !isVariable(src) && !isNumeric(src)) {
+                if (!isRegister(src) && !isVariable(src) && !isNumeric(src) && !isIndirect(src)) {
                     throw new Exception("Syntax error: Invalid source operand for MOV operation");
                 }
                 if (isRegister(dest) && isRegister(src) && getRegisterSize(dest) != getRegisterSize(src)) {
                     throw new Exception("Syntax error: Size mismatch between source and destination registers for MOV operation");
                 }
                 // Implement the MOV operation
-                int srcValue = getValue(src);
-                cpu.setRegister(dest, srcValue);
+                int srcValue;
+                if (isIndirect(src)) {
+                    int address = getIndirectAddress(src);
+                    srcValue = cpu.getMemory(address);
+                } else {
+                    srcValue = getValue(src);
+                }
+                if (isIndirect(dest)) {
+                    int address = getIndirectAddress(dest);
+                    cpu.setMemory(address, srcValue);
+                } else {
+                    cpu.setRegister(dest, srcValue);
+                }
                 break;
             case "MOVSX":
                 handleMovsx(parts);
@@ -204,27 +215,36 @@ class Assembler {
         }
     }
     private void handleAdd(String[] parts) throws Exception {
-    if (parts.length != 3) {
-        throw new Exception("Syntax error: Invalid number of operands for ADD operation");
+        if (parts.length != 3) {
+            throw new Exception("Syntax error: Invalid number of operands for ADD operation");
+        }
+        String dest = parts[1].toUpperCase();
+        String src = parts[2].toUpperCase();
+        if (!isRegister(dest) && !isVariable(dest) && !isIndirect(dest)) {
+            throw new Exception("Syntax error: Invalid destination operand for ADD operation");
+        }
+        if (!isRegister(src) && !isVariable(src) && !isNumeric(src)) {
+            throw new Exception("Syntax error: Invalid source operand for ADD operation");
+        }
+        if (isRegister(dest) && isRegister(src) && getRegisterSize(dest) != getRegisterSize(src)) {
+            throw new Exception("Syntax error: Size mismatch between source and destination registers for ADD operation");
+        }
+        // Implement the ADD operation
+        int srcValue = getValue(src);
+        int destValue = 0;
+        int result = 0;
+        if (isIndirect(dest)) {
+            int address = getIndirectAddress(dest);
+            destValue = cpu.getMemory(address);
+            result = destValue + srcValue;
+            cpu.setMemory(address, result);
+        } else {
+            destValue = getValue(dest);
+            result = destValue + srcValue;
+            setValue(dest, result);
+        }
+        cpu.updateFlags(result, srcValue, destValue, true);
     }
-    String dest = parts[1].toUpperCase();
-    String src = parts[2].toUpperCase();
-    if (!isRegister(dest) && !isVariable(dest)) {
-        throw new Exception("Syntax error: Invalid destination operand for ADD operation");
-    }
-    if (!isRegister(src) && !isVariable(src) && !isNumeric(src)) {
-        throw new Exception("Syntax error: Invalid source operand for ADD operation");
-    }
-    if (isRegister(dest) && isRegister(src) && getRegisterSize(dest) != getRegisterSize(src)) {
-        throw new Exception("Syntax error: Size mismatch between source and destination registers for ADD operation");
-    }
-    // Implement the ADD operation
-    int srcValue = getValue(src);
-    int destValue = getValue(dest);
-    int result = destValue + srcValue;
-    cpu.setRegister(dest, result);
-    cpu.updateFlags(result, srcValue, destValue, true);
-}
 
     private void handleSub(String[] parts) throws Exception {
     if (parts.length != 3) {
@@ -628,6 +648,18 @@ private void handleDec(String[] parts) throws Exception {
         variables.put(operand, variable);
     }
 }
+
+
+// In the Assembler class:
+
+    private boolean isIndirect(String operand) {
+        return operand.startsWith("[") && operand.endsWith("]");
+    }
+
+    private int getIndirectAddress(String operand) {
+        String register = operand.substring(1, operand.length() - 1).toUpperCase();
+        return cpu.getRegister(register);
+    }
 }
 
 

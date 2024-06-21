@@ -9,11 +9,15 @@ class CPU {
     private byte[] registers;
     Map<String, Boolean> flags;
     Stack<Integer> stack;
+    byte[] memory;
+
 
     public CPU() {
         registers = new byte[32]; // 8 registers of 4 bytes each
         flags = new HashMap<>();
         stack = new Stack<>();
+        memory = new byte[1024]; // 1 KB of memory for our simple CPU
+
         resetRegisters();
         resetFlags();
     }
@@ -192,4 +196,20 @@ class CPU {
         flags.put("AF", ((operand1 ^ operand2 ^ result) & 0x10) != 0);
     }
 }
+
+
+
+
+
+    public int getMemory(int address) {
+        ByteBuffer buffer = ByteBuffer.wrap(memory, address, 4);
+        buffer.order(ByteOrder.LITTLE_ENDIAN);
+        return buffer.getInt();
+    }
+
+    public void setMemory(int address, int value) {
+        ByteBuffer buffer = ByteBuffer.wrap(memory, address, 4);
+        buffer.order(ByteOrder.LITTLE_ENDIAN);
+        buffer.putInt(value);
+    }
 }
