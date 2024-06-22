@@ -470,7 +470,11 @@ private void handleDec(String[] parts) throws Exception {
 
     private void handleJmp(String[] parts) {
         String label = parts[1];
-        executeLabel(label);
+        try {
+            executeLabel(label);
+        } catch (Exception e) {
+            System.out.println("Error executing label " + label + ": " + e.getMessage());
+        }
     }
 
     private void handleJz(String[] parts) {
@@ -617,7 +621,11 @@ private void handleDec(String[] parts) throws Exception {
         int ecx = cpu.getRegister("ECX");
         if (ecx != 0 && cpu.getFlag("ZF")) {
             cpu.setRegister("ECX", ecx - 1);
-            executeLabel(label);
+            try {
+                executeLabel(label);
+            } catch (Exception e) {
+                System.out.println("Error executing label " + label + ": " + e.getMessage());
+            }
         }
     }
 
@@ -632,7 +640,11 @@ private void handleDec(String[] parts) throws Exception {
         int ecx = cpu.getRegister("ECX");
         if (ecx != 0 && !cpu.getFlag("ZF")) {
             cpu.setRegister("ECX", ecx - 1);
-            executeLabel(label);
+            try {
+                executeLabel(label);
+            } catch (Exception e) {
+                System.out.println("Error executing label " + label + ": " + e.getMessage());
+            }
         }
     }
 
@@ -643,14 +655,28 @@ private void handleDec(String[] parts) throws Exception {
 
 
 
-    private void handlePrintReg(String[] parts) {
+    private void handlePrintReg(String[] parts) throws Exception{
+        if (parts.length != 2) {
+            throw new Exception("Syntax error: Invalid operand for PRINT_REG operation");
+        }
         String reg = parts[1].toUpperCase();
-        System.out.println(reg + ": " + cpu.getRegister(reg));
+        if (isRegister(reg)) {
+            System.out.println(reg + ": " + cpu.getRegister(reg));
+        } else {
+            System.out.println("Register not found: " + reg);
+        }
     }
 
-    private void handlePrintFlag(String[] parts) {
+    private void handlePrintFlag(String[] parts) throws Exception {
+        if (parts.length != 2) {
+            throw new Exception("Syntax error: Invalid operand for PRINT_FLAG operation");
+        }
         String flag = parts[1].toUpperCase();
-        System.out.println(flag + ": " + cpu.getFlag(flag));
+        if (cpu.getFlag(flag)) {
+            System.out.println(flag + ": " + cpu.getFlag(flag));
+        } else {
+            System.out.println("Flag not set: " + flag);
+        }
     }
 
     private void handleShowStack() {
@@ -661,19 +687,24 @@ private void handleDec(String[] parts) throws Exception {
         System.out.println("Data Segment: " + variables);
     }
 
-    private void executeLabel(String label) {
-        int lineIndex = labels.get(label);
+    private void executeLabel(String label) throws Exception {
+        Integer lineIndex = labels.get(label);
+        if (lineIndex == null) {
+            throw new Exception("Label not found: " + label);
+        }
         for (int i = lineIndex + 1; i < codeLines.length; i++) {
             String line = codeLines[i].trim();
             if (line.endsWith(":")) {
                 labels.put(line.substring(0, line.length() - 1), i);
-                continue;
+                line = line.substring(0, line.length() - 1).trim(); // Remove the label
             }
-            try {
-                execute(line, i);
-            } catch (Exception e) {
-                System.out.println("Error executing line " + i + ": " + e.getMessage());
-                break;
+            if (!line.isEmpty()) { // If there's an instruction on this line, execute it
+                try {
+                    execute(line, i);
+                } catch (Exception e) {
+                    System.out.println("Error executing line " + i + ": " + e.getMessage());
+                    break;
+                }
             }
         }
     }
@@ -805,7 +836,11 @@ private void handleDec(String[] parts) throws Exception {
         int cx = cpu.getRegister("CX");
         if (cx != 0) {
             cpu.setRegister("CX", cx - 1);
-            executeLabel(label);
+            try {
+                executeLabel(label);
+            } catch (Exception e) {
+                System.out.println("Error executing label " + label + ": " + e.getMessage());
+            }
         }
     }
 
