@@ -144,7 +144,41 @@ class Assembler {
             case "PTR":
                 handlePtr(parts);
                 break;
-            case "TEST":
+            case "PRINT":
+                if (parts.length != 2) {
+                    throw new Exception("Syntax error: Invalid number of operands for PRINT operation");
+                }
+                String operand = parts[1].toUpperCase();
+                if (isRegister(operand)) {
+                    System.out.println(cpu.getRegister(operand));
+                } else if (isVariable(operand)) {
+                    System.out.println(variables.get(operand).value);
+                } else {
+                    String[] operandParts = operand.split(" ");
+                    if (operandParts.length != 2) {
+                        throw new Exception("Syntax error: Invalid operand for PRINT operation");
+                    }
+                    String keyword = operandParts[0];
+                    String var = operandParts[1].toUpperCase();
+                    switch (keyword) {
+                        case "LENGTHOF":
+                            handleLengthof(new String[]{keyword, var});
+                            break;
+                        case "SIZEOF":
+                            handleSizeof(new String[]{keyword, var});
+                            break;
+                        case "PTR":
+                            handlePtr(new String[]{keyword, var});
+                            break;
+                        case "OFFSET":
+                            handleOffset(new String[]{keyword, var});
+                            break;
+                        default:
+                            throw new Exception("Syntax error: Invalid operand for PRINT operation");
+                    }
+                }
+                break;
+                case "TEST":
                 handleTest(parts);
                 break;
             case "CMP":
@@ -451,14 +485,110 @@ private void handleDec(String[] parts) throws Exception {
         }
     }
 
-    private void handleJg(String[] parts) {
-        if (!cpu.getFlag("ZF") && (cpu.getFlag("SF") == cpu.getFlag("OF"))) {
+    private void handleJc(String[] parts) {
+        if (cpu.getFlag("CF")) {
             handleJmp(parts);
         }
     }
 
-    private void handleJl(String[] parts) {
-        if (cpu.getFlag("SF") != cpu.getFlag("OF")) {
+    private void handleJnc(String[] parts) {
+        if (!cpu.getFlag("CF")) {
+            handleJmp(parts);
+        }
+    }
+
+    private void handleJo(String[] parts) {
+        if (cpu.getFlag("OF")) {
+            handleJmp(parts);
+        }
+    }
+
+    private void handleJno(String[] parts) {
+        if (!cpu.getFlag("OF")) {
+            handleJmp(parts);
+        }
+    }
+
+    private void handleJs(String[] parts) {
+        if (cpu.getFlag("SF")) {
+            handleJmp(parts);
+        }
+    }
+
+    private void handleJns(String[] parts) {
+        if (!cpu.getFlag("SF")) {
+            handleJmp(parts);
+        }
+    }
+
+    private void handleJp(String[] parts) {
+        if (cpu.getFlag("PF")) {
+            handleJmp(parts);
+        }
+    }
+
+    private void handleJnp(String[] parts) {
+        if (!cpu.getFlag("PF")) {
+            handleJmp(parts);
+        }
+    }
+
+    private void handleJe(String[] parts) {
+        if (cpu.getFlag("ZF")) {
+            handleJmp(parts);
+        }
+    }
+
+    private void handleJne(String[] parts) {
+        if (!cpu.getFlag("ZF")) {
+            handleJmp(parts);
+        }
+    }
+
+    private void handleJcxz(String[] parts) {
+        if (cpu.getRegister("CX") == 0) {
+            handleJmp(parts);
+        }
+    }
+
+    private void handleJecxz(String[] parts) {
+        if (cpu.getRegister("ECX") == 0) {
+            handleJmp(parts);
+        }
+    }
+
+    private void handleJrcxz(String[] parts) {
+        if (cpu.getRegister("RCX") == 0) {
+            handleJmp(parts);
+        }
+    }
+
+    private void handleJa(String[] parts) {
+        if (!cpu.getFlag("CF") && !cpu.getFlag("ZF")) {
+            handleJmp(parts);
+        }
+    }
+
+    private void handleJae(String[] parts) {
+        if (!cpu.getFlag("CF")) {
+            handleJmp(parts);
+        }
+    }
+
+    private void handleJb(String[] parts) {
+        if (cpu.getFlag("CF")) {
+            handleJmp(parts);
+        }
+    }
+
+    private void handleJbe(String[] parts) {
+        if (cpu.getFlag("CF") || cpu.getFlag("ZF")) {
+            handleJmp(parts);
+        }
+    }
+
+    private void handleJg(String[] parts) {
+        if (!cpu.getFlag("ZF") && (cpu.getFlag("SF") == cpu.getFlag("OF"))) {
             handleJmp(parts);
         }
     }
@@ -469,11 +599,49 @@ private void handleDec(String[] parts) throws Exception {
         }
     }
 
+    private void handleJl(String[] parts) {
+        if (cpu.getFlag("SF") != cpu.getFlag("OF")) {
+            handleJmp(parts);
+        }
+    }
+
     private void handleJle(String[] parts) {
         if (cpu.getFlag("ZF") || (cpu.getFlag("SF") != cpu.getFlag("OF"))) {
             handleJmp(parts);
         }
     }
+
+
+    private void handleLoopz(String[] parts) {
+        String label = parts[1];
+        int ecx = cpu.getRegister("ECX");
+        if (ecx != 0 && cpu.getFlag("ZF")) {
+            cpu.setRegister("ECX", ecx - 1);
+            executeLabel(label);
+        }
+    }
+
+    private void handleLoope(String[] parts) {
+        handleLoopz(parts); // LOOPE is equivalent to LOOPZ
+    }
+
+
+
+    private void handleLoopnz(String[] parts) {
+        String label = parts[1];
+        int ecx = cpu.getRegister("ECX");
+        if (ecx != 0 && !cpu.getFlag("ZF")) {
+            cpu.setRegister("ECX", ecx - 1);
+            executeLabel(label);
+        }
+    }
+
+    private void handleLoopne(String[] parts) {
+        handleLoopnz(parts); // LOOPNE is equivalent to LOOPNZ
+    }
+
+
+
 
     private void handlePrintReg(String[] parts) {
         String reg = parts[1].toUpperCase();
@@ -563,7 +731,10 @@ private void handleDec(String[] parts) throws Exception {
         cpu.setFlag("CF", false);
     }
 
-    private void handleLengthof(String[] parts) {
+    private void handleLengthof(String[] parts) throws Exception {
+        if (parts.length != 2) {
+            throw new Exception("Syntax error: Invalid operand for LENGTHOF operation");
+        }
         String var = parts[1].toUpperCase();
         if (isVariable(var)) {
             long length = variables.get(var).length;
@@ -573,7 +744,10 @@ private void handleDec(String[] parts) throws Exception {
         }
     }
 
-    private void handleSizeof(String[] parts) {
+    private void handleSizeof(String[] parts) throws Exception {
+        if (parts.length != 2) {
+            throw new Exception("Syntax error: Invalid operand for SIZEOF operation");
+        }
         String var = parts[1].toUpperCase();
         if (isVariable(var)) {
             long size = variables.get(var).size;
@@ -583,7 +757,10 @@ private void handleDec(String[] parts) throws Exception {
         }
     }
 
-    private void handlePtr(String[] parts) {
+    private void handlePtr(String[] parts) throws Exception {
+        if (parts.length != 2) {
+            throw new Exception("Syntax error: Invalid operand for PTR operation");
+        }
         String var = parts[1].toUpperCase();
         if (isVariable(var)) {
             long address = variables.get(var).address;
@@ -593,7 +770,10 @@ private void handleDec(String[] parts) throws Exception {
         }
     }
 
-    private void handleOffset(String[] parts) {
+    private void handleOffset(String[] parts) throws Exception {
+        if (parts.length != 2) {
+            throw new Exception("Syntax error: Invalid operand for OFFSET operation");
+        }
         String var = parts[1].toUpperCase();
         if (isVariable(var)) {
             long address = variables.get(var).address;
