@@ -229,6 +229,32 @@ class Assembler {
                     throw new Exception("Runtime error: Stack underflow");
                 }
                 break;
+
+            case "PRINT_MEM":
+                if (parts.length != 2) {
+                    throw new Exception("Syntax error: Invalid number of operands for PRINT_MEM operation");
+                }
+                String reg = parts[1].toUpperCase();
+                if (isRegister(reg)) {
+                    int memAddress = cpu.getRegister(reg);
+                    int value = cpu.getMemory(memAddress);
+                    // Convert the value to a byte array
+                    byte[] bytes = ByteBuffer.allocate(4).putInt(value).array();
+                    // Reverse the byte array to get the value in little endian order
+                    byte[] littleEndianBytes = new byte[bytes.length];
+                    for (int i = 0; i < bytes.length; i++) {
+                        littleEndianBytes[i] = bytes[bytes.length - 1 - i];
+                    }
+                    // Convert the little endian byte array to a hexadecimal string and print it
+                    StringBuilder sb = new StringBuilder();
+                    for (byte b : littleEndianBytes) {
+                        sb.append(String.format("%02x", b));
+                    }
+                    System.out.println("Memory[" + reg + "]: " + sb.toString());
+                } else {
+                    System.out.println("Register not found: " + reg);
+                }
+                break;
             default:
                 if (opcode.endsWith(":")) {
                     // This is a label definition, nothing to execute
@@ -811,6 +837,8 @@ private void handleDec(String[] parts) throws Exception {
             return cpu.getRegister(operand);
         } else if (isVariable(operand)) {
             return (int)variables.get(operand).value;
+        } else if (isIndirect(operand)) {
+            return cpu.getMemory(getIndirectAddress(operand));
         } else {
             return Integer.parseInt(operand);
         }
@@ -954,15 +982,22 @@ private void handleDec(String[] parts) throws Exception {
 }
 
 
-// In the Assembler class:
-
     private boolean isIndirect(String operand) {
         return operand.startsWith("[") && operand.endsWith("]");
-    }
+}
 
     private int getIndirectAddress(String operand) {
-        String register = operand.substring(1, operand.length() - 1).toUpperCase();
-        return cpu.getRegister(register);
+        operand = operand.substring(1, operand.length() - 1).toUpperCase(); // Remove the brackets
+        String[] parts = operand.split("\\+");
+        if (parts.length == 1) {
+            // The operand is in the form [REGISTER]
+            return cpu.getRegister(parts[0]);
+        } else {
+            // The operand is in the form [REGISTER + OFFSET]
+            String register = parts[0];
+            int offset = Integer.parseInt(parts[1]);
+            return cpu.getRegister(register) + offset;
+        }
     }
 }
 
