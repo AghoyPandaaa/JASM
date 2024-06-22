@@ -236,12 +236,13 @@ class Assembler {
                 throw new Exception("Unsupported data type: " + dataType);
         }
 
-        if (parts[2].startsWith("[")) {
+        if (parts.length > 3) {
             // This is an array definition
-            length = Integer.parseInt(parts[2].substring(1, parts[2].length() - 1));
+            length = parts.length - 2;
             for (int i = 0; i < length; i++) {
+                parsedValue = Long.parseLong(parts[i + 2]);
                 long address = 0; // You need to implement logic to calculate the address
-                Variable variable = new Variable(address, size, length, 0);
+                Variable variable = new Variable(address, size, length, parsedValue);
                 variables.put(varName + "[" + i + "]", variable);
             }
         } else {
@@ -698,7 +699,17 @@ private void handleDec(String[] parts) throws Exception {
     }
 
     private void handleShowData() {
-        System.out.println("Data Segment: " + variables);
+        System.out.println("Data Segment:");
+        for (Map.Entry<String, Variable> entry : variables.entrySet()) {
+            String varName = entry.getKey();
+            Variable variable = entry.getValue();
+            System.out.println("Variable Name: " + varName);
+            System.out.println("Address: " + variable.address);
+            System.out.println("Size: " + variable.size);
+            System.out.println("Length: " + variable.length);
+            System.out.println("Value: " + variable.value);
+            System.out.println("--------------------");
+        }
     }
 
     private void executeLabel(String label) throws Exception {
