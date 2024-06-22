@@ -7,7 +7,7 @@ public class Main {
         String code = "";
 
         try {
-            code = new String(Files.readAllBytes(Paths.get("C:\\Users\\AghoyPandaaa\\IdeaProjects\\JASM\\src\\test.asm")));
+            code = new String(Files.readAllBytes(Paths.get("C:\\Users\\AghoyPandaaa\\IdeaProjects\\JASM\\src\\test2.asm")));
         } catch (Exception e) {
             System.out.println("Error reading file: " + e.getMessage());
             return;

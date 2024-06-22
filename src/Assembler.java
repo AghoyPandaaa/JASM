@@ -793,6 +793,9 @@ private void handleDec(String[] parts) throws Exception {
     }
 
     public void runCode(String code) {
+        int maxIterations = 10000; // Set your maximum iteration count
+        int iterationCount = 0;
+
         codeLines = code.split("\n");
         // First pass: identify labels
         for (int i = 0; i < codeLines.length; i++) {
@@ -813,6 +816,10 @@ private void handleDec(String[] parts) throws Exception {
             if (!line.endsWith(":")) {
                 try {
                     execute(line, i);
+                    iterationCount++;
+                    if (iterationCount > maxIterations) {
+                        throw new Exception("Maximum iteration count exceeded, potential infinite loop detected.");
+                    }
                 } catch (Exception e) {
                     System.out.println("Error executing line " + i + ": " + e.getMessage());
                     break;
