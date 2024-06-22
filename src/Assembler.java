@@ -8,6 +8,7 @@ class Assembler {
     CPU cpu;
     Map<String, Integer> labels;
     Map<String, Variable> variables = new HashMap<>();
+    Map<String, String> constants = new HashMap<>();
     String[] codeLines;
     int currentSegment;
 
@@ -196,6 +197,37 @@ class Assembler {
                 break;
             case ".STACK":
                 currentSegment = 2;
+                break;
+            case "EQU":
+            case "TEXTEQU":
+            case "=":
+                if (parts.length != 3) {
+                    throw new Exception("Syntax error: Invalid number of operands for " + opcode + " operation");
+                }
+                String constName = parts[1].toUpperCase();
+                String constValue = parts[2];
+                constants.put(constName, constValue);
+                break;
+
+            case "CALL":
+                if (parts.length != 2) {
+                    throw new Exception("Syntax error: Invalid number of operands for CALL operation");
+                }
+                String label = parts[1];
+                Integer address = labels.get(label);
+                if (address == null) {
+                    throw new Exception("Syntax error: Undefined label " + label);
+                }
+                cpu.returnAddressStack.push(currentLine + 1);
+                execute(codeLines[address], address);
+                break;
+            case "RET":
+                if (!cpu.returnAddressStack.isEmpty()) {
+                    int returnAddress = cpu.returnAddressStack.pop();
+                    execute(codeLines[returnAddress], returnAddress);
+                } else {
+                    throw new Exception("Runtime error: Stack underflow");
+                }
                 break;
             default:
                 if (opcode.endsWith(":")) {

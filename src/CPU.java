@@ -9,6 +9,7 @@ class CPU {
     private byte[] registers;
     Map<String, Boolean> flags;
     Stack<Integer> stack;
+    Stack<Integer> returnAddressStack = new Stack<>();
     byte[] memory;
 
 
