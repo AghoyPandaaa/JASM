@@ -1,6 +1,7 @@
-label1:
-MOV CX, 5
-label2:
-DEC CX
-PRINT_REG CX
-JNZ label2
+
+.CODE
+
+
+
+MOV EAX, 12345678
+PRINT_REG EAX

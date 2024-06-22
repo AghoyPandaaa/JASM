@@ -2,6 +2,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Stack;
 import java.lang.Exception;
+import java.nio.ByteBuffer;
 
 class Assembler {
     CPU cpu;
@@ -655,13 +656,26 @@ private void handleDec(String[] parts) throws Exception {
 
 
 
-    private void handlePrintReg(String[] parts) throws Exception{
+    private void handlePrintReg(String[] parts) throws Exception {
         if (parts.length != 2) {
             throw new Exception("Syntax error: Invalid operand for PRINT_REG operation");
         }
         String reg = parts[1].toUpperCase();
         if (isRegister(reg)) {
-            System.out.println(reg + ": " + cpu.getRegister(reg));
+            int value = cpu.getRegister(reg);
+            // Convert the value to a byte array
+            byte[] bytes = ByteBuffer.allocate(4).putInt(value).array();
+            // Reverse the byte array to get the value in little endian order
+            byte[] littleEndianBytes = new byte[bytes.length];
+            for (int i = 0; i < bytes.length; i++) {
+                littleEndianBytes[i] = bytes[bytes.length - 1 - i];
+            }
+            // Convert the little endian byte array to a hexadecimal string and print it
+            StringBuilder sb = new StringBuilder();
+            for (byte b : littleEndianBytes) {
+                sb.append(String.format("%02x", b));
+            }
+            System.out.println(reg + ": " + sb.toString());
         } else {
             System.out.println("Register not found: " + reg);
         }
@@ -714,6 +728,9 @@ private void handleDec(String[] parts) throws Exception {
         // First pass: identify labels
         for (int i = 0; i < codeLines.length; i++) {
             String line = codeLines[i].trim();
+            if (line.isEmpty()) {
+                continue; // Skip empty lines
+            }
             if (line.endsWith(":")) {
                 labels.put(line.substring(0, line.length() - 1), i);
             }
@@ -721,6 +738,9 @@ private void handleDec(String[] parts) throws Exception {
         // Second pass: execute instructions
         for (int i = 0; i < codeLines.length; i++) {
             String line = codeLines[i].trim();
+            if (line.isEmpty()) {
+                continue; // Skip empty lines
+            }
             if (!line.endsWith(":")) {
                 try {
                     execute(line, i);
@@ -741,7 +761,10 @@ private void handleDec(String[] parts) throws Exception {
     }
 
     private int getValue(String operand) {
-        if (isRegister(operand)) {
+        if (operand.startsWith("0x")) {
+            // Parse the operand as a hexadecimal number
+            return Integer.parseInt(operand.substring(2), 16);
+        } else if (isRegister(operand)) {
             return cpu.getRegister(operand);
         } else if (isVariable(operand)) {
             return (int)variables.get(operand).value;
@@ -846,11 +869,22 @@ private void handleDec(String[] parts) throws Exception {
 
 
     private boolean isNumeric(String str) {
-        try {
-            Integer.parseInt(str);
-            return true;
-        } catch (NumberFormatException e) {
-            return false;
+        if (str.startsWith("0x")) {
+            // Check if it's a valid hexadecimal number
+            try {
+                Integer.parseInt(str.substring(2), 16);
+                return true;
+            } catch (NumberFormatException e) {
+                return false;
+            }
+        } else {
+            // Check if it's a valid decimal number
+            try {
+                Integer.parseInt(str);
+                return true;
+            } catch (NumberFormatException e) {
+                return false;
+            }
         }
     }
 
